@@ -1,10 +1,8 @@
 import React from 'react';
-import {View} from 'react-native';
-import {FFF} from '@components/card';
+import Navigation from './navigation';
 
 const App = () => {
-  console.log(FFF)
-  return <View style={{backgroundColor: 'red', width: 100, height: 100}} />;
+  return <Navigation />;
 };
 
 export default App;
