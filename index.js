@@ -4,7 +4,7 @@ import {name as appName} from './app.json';
 import Config from 'react-native-config';
 import {mockFetch} from './apiMocks';
 
-if (Config.APP_ENV === 'DEV') {
+if (Config.APP_ENV === 'DEV' || Config.APP_ENV === 'PROD' ) {
   mockFetch();
 }
 
