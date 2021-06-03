@@ -8,8 +8,8 @@ import {AirportDetails, FlightPrice, FlightTemp} from '@type/Flight';
 import {BannerRequestData} from '@type/Banner';
 import {getAirport, getFlightTemp, getFlightPrice} from '@api/methods';
 
-// TODO: use currentTS to optimize request calls by checking if request data are the same
-// and for example if last request was made less than 1 h ago
+// TODO: Future improvements where variable currentTS could be used
+// to check if data are 1 hour old
 
 function* getBannerData({fromCode, toCode, lang, ts}: BannerRequestData) {
   try {
