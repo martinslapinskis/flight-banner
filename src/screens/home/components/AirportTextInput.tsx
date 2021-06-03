@@ -4,6 +4,7 @@ import {
   TextInput,
   TextInputProps,
   Text,
+  View,
   StyleSheet,
 } from 'react-native';
 
@@ -16,15 +17,16 @@ const AirportTextInput = forwardRef<TextInput, Props>(
   ({onPress, value, title, onChangeText, placeholder}, ref) => {
     return (
       <TouchableOpacity style={styles.container} onPress={onPress}>
-        <Text style={styles.title}>{title}</Text>
-        <TextInput
-          placeholder={placeholder}
-          style={styles.textInput}
-          pointerEvents="none"
-          ref={ref}
-          value={value}
-          onChangeText={onChangeText}
-        />
+        <View pointerEvents="none">
+          <Text style={styles.title}>{title}</Text>
+          <TextInput
+            placeholder={placeholder}
+            style={styles.textInput}
+            ref={ref}
+            value={value}
+            onChangeText={onChangeText}
+          />
+        </View>
       </TouchableOpacity>
     );
   },

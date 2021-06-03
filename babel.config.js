@@ -9,9 +9,13 @@ module.exports = {
         alias: {
           '@api': './src/api',
           '@assets': './src/assets',
+          '@components': './src/components',
           '@constants': './src/constants',
+          '@hooks': './src/hooks',
           '@navigation': './src/navigation',
+          '@redux': './src/redux',
           '@screens': './src/screens',
+          '@type': './src/type',
           '@utils': './src/utils',
         },
       },

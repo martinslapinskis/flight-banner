@@ -11,10 +11,16 @@ export interface FlightPrice {
   price: string;
 }
 
-export interface DestinationTemperature {
-  temperature: string;
+export interface FlightTemp {
+  temp: number;
+  tempScale: string;
+}
+
+export interface LastUpdate {
+  lastUpdateTS?: string;
 }
 
 export type FlightFullDetails = AirportDetails &
   FlightPrice &
-  DestinationTemperature;
+  FlightTemp &
+  LastUpdate;

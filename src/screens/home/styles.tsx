@@ -36,6 +36,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 8,
     backgroundColor: 'white',
+    justifyContent: 'center',
   },
   airportButton: {
     flex: 1,
@@ -71,12 +72,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#A6A6AE',
   },
-  refreshButton: {
-    width: 30,
-    height: 30,
-    top: -15,
-    marginRight: 20,
+  findButton: {
+    width: 40,
+    height: 40,
+    right: 20,
+    zIndex: 10,
+    position: 'absolute',
     alignSelf: 'flex-end',
+  },
+  findImg: {
+    flex: 1,
+    aspectRatio: 1,
   },
   moreInfoButton: {
     marginTop: 50,

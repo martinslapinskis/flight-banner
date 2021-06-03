@@ -2,16 +2,21 @@ import React, {useState, useEffect, useRef} from 'react';
 import {MainParamList} from '@navigation/main';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {useHeaderHeight} from '@react-navigation/stack';
-import {getRandomInt} from '@utils/CalculationUtils';
+import {useSelector, useDispatch} from 'react-redux';
+import {RootState} from '@type/RootState';
+import {BannerRequestData} from '@type/Banner';
+import {getBannerData} from '@redux/actions';
 import RNLocalize from 'react-native-localize';
 import AirportTextInput from './components/AirportTextInput';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import styles from './styles';
+import useIndexIntreval from '@hooks/useIndexIntreval';
+import Spinner from '@components/Spinner';
 import {
   firstFlightBackground,
   secondFlightBackground,
   thirdFlightBackground,
-  iconRefresh,
+  iconFind,
 } from '@assets/images';
 import {
   View,
@@ -24,84 +29,112 @@ import {
 } from 'react-native';
 
 type Navigation = StackNavigationProp<MainParamList, 'Home'>;
-
 interface Props {
   navigation: Navigation;
 }
 
 const INTERVAL_DURATION = 5000;
-const backgroundImgs = [
+const SINGLE_IMG_TEMP = 20;
+const BACKGROUND_IMGS = [
   firstFlightBackground,
   secondFlightBackground,
   thirdFlightBackground,
 ];
 
 const HomeScreen = ({navigation}: Props) => {
+  const {flightData, bannerInputData, isLoading} = useSelector(
+    (state: RootState) => state.banner,
+  );
   const headerHeight = useHeaderHeight();
-  const [fromAirport, setFromAirport] = useState('');
-  const [toAirport, setToAirport] = useState('');
-  const [languageCode, setLanguageCode] = useState<string>();
+  const [fromAirport, setFromAirport] = useState(
+    bannerInputData?.fromCode || '',
+  );
+  const [toAirport, setToAirport] = useState(bannerInputData?.toCode || '');
+  const [languageCode, setLanguageCode] = useState('');
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTS, setSelectedTS] = useState(bannerInputData?.ts || 0);
+  const [isFindBtnActive, setFindBtnActive] = useState(false);
   const [backgroundImgIndex, setBackgroundImgIndex] = useState(0);
+  const {indexIntreval} = useIndexIntreval(
+    BACKGROUND_IMGS.length,
+    INTERVAL_DURATION,
+  );
   const fromAirportRef = useRef<TextInput>(null);
   const toAirportRef = useRef<TextInput>(null);
-  let selectedTS = 0;
+  const dispatch = useDispatch();
 
   useEffect(() => {
+    if (bannerInputData) {
+      setPersistInputData(bannerInputData);
+    } else {
+      setNewInputData();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (flightData) {
+      // If temp is higher than SINGLE_IMG_TEMP than show 0 index img
+      setBackgroundImgIndex(
+        flightData.temp > SINGLE_IMG_TEMP ? 0 : indexIntreval,
+      );
+    }
+  }, [indexIntreval]);
+
+  useEffect(() => {
+    setFindBtnActive(fromAirport?.length !== 0 && toAirport?.length !== 0);
+  }, [fromAirport, toAirport]);
+
+  const setPersistInputData = (data: BannerRequestData) => {
+    setLanguageCode(data.lang);
+    updateDate(new Date(data.ts));
+  };
+
+  const setNewInputData = () => {
     const locales = RNLocalize.getLocales().shift();
-    setLanguageCode(locales?.languageCode);
+    setLanguageCode(locales?.languageCode || 'en');
 
     const currentDate = new Date();
     updateDate(currentDate);
-  }, []);
+  };
 
-  // Repeat interval
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    const focusListener = navigation.addListener('focus', () => {
-      interval = setInterval(() => {
-        setBackgroundImgIndex(getRandomInt(backgroundImgs.length));
-      }, INTERVAL_DURATION);
-    });
-
-    const blutListener = navigation.addListener('blur', () => {
-      removeInterval();
-    });
-
-    const removeInterval = () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-
-    return () => {
-      removeInterval();
-      focusListener();
-      blutListener();
-    };
-  }, [navigation]);
+  const updateDate = (date: Date) => {
+    // need to add one because month range 0-11
+    const dateFormated = `${date.getFullYear()}-${date.getMonth() + 1}`;
+    setSelectedTS(date.getTime());
+    setSelectedDate(dateFormated);
+  };
 
   const onDatePickerConfirm = (date: Date) => {
     updateDate(date);
     setDatePickerVisibility(false);
   };
 
-  const updateDate = (date: Date) => {
-    // need to add one because month range 0-11
-    const dateFormated = `${date.getFullYear()}-${date.getMonth() + 1}`;
-    selectedTS = date.getTime();
+  const onFindButtonPress = () => {
+    dispatch(
+      getBannerData({
+        fromCode: fromAirport,
+        toCode: toAirport,
+        lang: languageCode,
+        ts: selectedTS,
+      }),
+    );
+  };
 
-    setSelectedDate(dateFormated);
+  const onNavigateToDetails = () => {
+    if (flightData) {
+      navigation.navigate('Details', {data: flightData});
+    }
   };
 
   return (
     <View style={styles.container}>
-      <ImageBackground
-        source={backgroundImgs[backgroundImgIndex]}
-        style={styles.backViewImg}
-      />
+      {flightData && (
+        <ImageBackground
+          source={BACKGROUND_IMGS[backgroundImgIndex]}
+          style={styles.backViewImg}
+        />
+      )}
 
       <ScrollView
         style={styles.scrollView}
@@ -135,9 +168,7 @@ const HomeScreen = ({navigation}: Props) => {
             onChangeText={setFromAirport}
           />
 
-          <View style={styles.divider}>
-            <Image source={iconRefresh} style={styles.refreshButton} />
-          </View>
+          <View style={styles.divider} />
 
           <AirportTextInput
             title="To"
@@ -147,22 +178,35 @@ const HomeScreen = ({navigation}: Props) => {
             value={toAirport}
             onChangeText={setToAirport}
           />
+
+          <TouchableOpacity
+            disabled={!isFindBtnActive}
+            style={[styles.findButton, {opacity: isFindBtnActive ? 1 : 0.4}]}
+            onPress={onFindButtonPress}>
+            <Image source={iconFind} style={styles.findImg} />
+          </TouchableOpacity>
         </View>
 
-        <View style={[styles.infoView, styles.shadow]}>
+        <View
+          style={[
+            styles.infoView,
+            styles.shadow,
+            {opacity: flightData === null ? 0.4 : 1},
+          ]}
+          pointerEvents={flightData === null ? 'none' : 'auto'}>
           <Text style={[styles.title, {alignSelf: 'center'}]}>Information</Text>
 
           <View style={styles.infoItemsView}>
             <View style={styles.infoItem}>
               <Text style={styles.subtitle}>Country</Text>
               <Text style={styles.title} numberOfLines={1}>
-                Latvia
+                {flightData?.countryName}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.subtitle}>City</Text>
               <Text style={styles.title} numberOfLines={1}>
-                Riga
+                {flightData?.cityName}
               </Text>
             </View>
           </View>
@@ -171,13 +215,13 @@ const HomeScreen = ({navigation}: Props) => {
             <View style={styles.infoItem}>
               <Text style={styles.subtitle}>temperature</Text>
               <Text style={styles.title} numberOfLines={1}>
-                23E
+                {`${flightData?.temp || ''} ${flightData?.tempScale || ''}`}
               </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.subtitle}>Price</Text>
               <Text style={styles.title} numberOfLines={1}>
-                E23.00
+                {flightData?.price}
               </Text>
             </View>
           </View>
@@ -185,7 +229,7 @@ const HomeScreen = ({navigation}: Props) => {
           <TouchableOpacity
             style={styles.moreInfoButton}
             activeOpacity={0.5}
-            onPress={() => navigation.navigate('Details', {})}>
+            onPress={onNavigateToDetails}>
             <Text style={styles.moreInfoText}>More information</Text>
           </TouchableOpacity>
         </View>
@@ -197,6 +241,8 @@ const HomeScreen = ({navigation}: Props) => {
         onConfirm={onDatePickerConfirm}
         onCancel={() => setDatePickerVisibility(false)}
       />
+
+      <Spinner show={isLoading} />
     </View>
   );
 };
